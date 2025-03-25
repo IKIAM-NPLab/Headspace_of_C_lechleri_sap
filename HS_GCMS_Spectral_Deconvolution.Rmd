@@ -114,7 +114,7 @@ Missing compound recovery
 ```{r echo=TRUE}
 
 ex <- recMissComp(ex,
-                  min.samples = 3)
+                  min.samples = 2)
 
 ```
 
