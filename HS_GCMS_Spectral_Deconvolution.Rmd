@@ -1,0 +1,157 @@
+---
+title: "HS GCMS Spectral Deconvolution"
+author: "Jefferson Pastuna"
+date: "2025-03-25"
+output:
+  github_document:
+    toc: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+usethis::git_vaccinate()
+
+```
+
+### Introduction
+
+Write an Introduction.
+
+### Before to start
+
+Write a package description.
+
+### eRah package workflow
+
+How to star.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+# eRah package installation
+#install.packages('erah')
+# eRah library call
+library(erah)
+
+```
+
+Folder files
+
+```{r echo=TRUE}
+
+# Delete all file that are not in folders
+unlink('Data/Data_to_eRah/*')
+# Data folder path
+createdt('Data/Data_to_eRah/')
+
+```
+
+New experiment.
+
+
+```{r echo=TRUE}
+
+# Loading (*.CDF) chromatograms
+instrumental <- read.csv('Data/Metadata_to_eRah/HS_GCMS_Data_inst_CDF.csv')
+# Loading metadata of the chromatograms (phenotype file)
+phenotype <- read.csv('Data/Metadata_to_eRah/HS_GCMS_Data_pheno.csv')
+# Merge of metadata information with chromatograms
+ex <- newExp(instrumental = instrumental,
+             phenotype = phenotype,
+             info = 'Croton lechleri sap')
+
+```
+
+Compound deconvolution
+
+Parameter
+
+```{r echo=TRUE}
+
+ex.dec.par <- setDecPar(min.peak.width = 3,
+                        min.peak.height = 400,
+                        noise.threshold = 40,
+                        avoid.processing.mz = c(30:32))
+
+```
+
+parallel processing
+
+```{r echo=TRUE}
+
+plan(future::multisession,
+     workers = 5)
+
+```
+
+Deconvolution
+
+```{r echo=TRUE, warning=FALSE}
+
+ex <- deconvolveComp(ex,
+                     ex.dec.par)
+
+```
+
+Alignment
+
+```{r echo=TRUE}
+
+# Alignment parameters
+ex.al.par <- setAlPar(min.spectra.cor = 0.85,
+                      max.time.dist = 2.4,
+                      mz.range = 32:550)
+# Alignment
+ex <- alignComp(ex,
+                alParameters = ex.al.par)
+
+```
+
+Missing compound recovery
+
+
+```{r echo=TRUE}
+
+ex <- recMissComp(ex,
+                  min.samples = 3)
+
+```
+
+Exporting alignment feature list.
+
+```{r echo=TRUE}
+
+# Extracting alignment feature list
+feat_list <- alignList(ex,
+                       by.area = FALSE)
+# Exporting alignment feature list
+#write.csv(feat_list,
+#          file = "Result/eRah_Result/eRah_feature_table.csv")
+
+```
+
+# Identification
+
+Metabolite identification was by comparing all the spectra found against a reference database. The eRah default database was used to metabolite identification. Metabolite identification was improve by exporting all the spectra found (.msp) in eRah to NIST MS Search 2.4 software.
+
+```{r echo=TRUE, warning=FALSE}
+
+# Identification
+peak_iden <- identifyComp(ex,
+                          id.database = mslib,
+                          mz.range = NULL,
+                          n.putative = 1)
+
+```
+
+Exporting spectra to NIST MS Search software identification with NIST-20 library.
+
+```{r echo=TRUE}
+
+#export2MSP(peak_iden,
+#           store.path = "Result/eRah_Result",
+#           alg.version = 2)
+
+```
+
